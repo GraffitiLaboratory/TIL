@@ -1,4 +1,9 @@
 #vmmap #readelf #objdump
+
+### NX disable
+
+$ gcc -o r2s r2s.c -zexecstack
+컴파일 시 -zexecstack  옵션을 사용하면 NX 기능이 꺼지게 된다.
 ### vmmap
 
 현재 디버깅 중인 프로세스의 가상 메모리 맵을 보여주는 명령어

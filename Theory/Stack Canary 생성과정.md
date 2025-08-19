@@ -2,6 +2,12 @@
 
 카나리 값은 프로세스가 시작될 때, TLS에 전역 변수로 저장되고, 각 함수마다 프롤로그와 에필로그에서 이 값을 참조한다.
 
+### stack canary 켜기 / 끄기
+
+$ gcc -o r2s r2s.c -fstack-protector
+
+$ gcc -o r2s r2s.c -fno-stack-protector
+
 ### TLS 주소 파악
 
 fs는 TLS를 가리키므로 fs 의 값을 알면 TLS의 주소를 알 수 있다.
