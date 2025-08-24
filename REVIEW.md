@@ -7,12 +7,13 @@ kanban-plugin: board
 ## Planing
 
 - [ ] [FTZ] Level11 4가지 Exploit
+- [ ] [VMWare] Ubuntu 22.04 설치
 
 
 ## To Do
 
-- [ ] Ubuntu 22.04 설치
 - [ ] 도커 사용법 익히기
+- [ ] [DH] basic_rop_x86
 
 
 ## Doing

