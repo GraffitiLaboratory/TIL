@@ -11,7 +11,8 @@ kanban-plugin: board
 
 ## To Do
 
-- [ ] [DH] rop
+- [ ] Ubuntu 22.04 설치
+- [ ] 도커 사용법 익히기
 
 
 ## Doing
@@ -24,6 +25,7 @@ kanban-plugin: board
 - [ ] [DH] Return to Library
 - [ ] [DH] Return to Shellcode
 - [ ] [DH] ssp_001
+- [ ] [DH] rop
 
 
 ## BrushUp01
