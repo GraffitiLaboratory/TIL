@@ -7,13 +7,12 @@ kanban-plugin: board
 ## Planing
 
 - [ ] [FTZ] Level11 4가지 Exploit
-- [ ] [VMWare] Ubuntu 22.04 설치
+- [ ] [VMWare] Kari 25.02 설치
 
 
 ## To Do
 
 - [ ] 도커 사용법 익히기
-- [ ] [DH] basic_rop_x86
 
 
 ## Doing
@@ -27,6 +26,7 @@ kanban-plugin: board
 - [ ] [DH] Return to Shellcode
 - [ ] [DH] ssp_001
 - [ ] [DH] rop
+- [ ] [DH] basic_rop_x86
 
 
 ## BrushUp01
