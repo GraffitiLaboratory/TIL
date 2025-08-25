@@ -27,6 +27,7 @@ kanban-plugin: board
 - [ ] [DH] ssp_001
 - [ ] [DH] rop
 - [ ] [DH] basic_rop_x86
+- [ ] [DH] basic_rop_x64
 
 
 ## BrushUp01
