@@ -17,7 +17,6 @@ kanban-plugin: board
 
 ## Doing
 
-- [ ] [DH] fho
 
 
 ## Done
@@ -29,6 +28,8 @@ kanban-plugin: board
 - [ ] [DH] rop
 - [ ] [DH] basic_rop_x86
 - [ ] [DH] basic_rop_x64
+- [ ] [DH] fho
+- [ ] [DH] hook
 
 
 ## BrushUp01
