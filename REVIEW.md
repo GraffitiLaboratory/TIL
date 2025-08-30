@@ -30,6 +30,7 @@ kanban-plugin: board
 - [ ] [DH] basic_rop_x64
 - [ ] [DH] fho
 - [ ] [DH] hook
+- [ ] [DH] oneshot
 
 
 ## BrushUp01
