@@ -31,6 +31,7 @@ kanban-plugin: board
 - [ ] [DH] fho
 - [ ] [DH] hook
 - [ ] [DH] oneshot
+- [ ] [DH] out_of_bound
 
 
 ## BrushUp01
