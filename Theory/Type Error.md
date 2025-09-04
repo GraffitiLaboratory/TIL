@@ -203,5 +203,38 @@ integer overflow가 힙 버퍼 오버플로우로 이어지는 예제코드이�
 그리고 그 버퍼에 size 만큼 사용자 입력을 받는다.
 
 ``` c
+// Name: integer_overflow.c
+// Compile: gcc -o integer_overfolw integer_overflow.c -m32
 
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+int main() {
+    unsigned int size;
+    scanf("%u", &size);
+
+    char *buf = (char *)malloc(size + 1);
+    unsigned int read_size = read(0, buf, size);
+
+    buf[read_size] = 0;
+    return 0;
+}
 ```
+
+만약 사용자가 size 에 unsigned int 의 최댓값인 4294967295 을 입력하면, integer overflow 로 인해 size + 1 은 0 이 된다.
+이 값이 malloc에 전달되면, malloc 은 최소 할당 크기인 32바이트 만큼 청크를 할당한다.
+반면 read 함수는 size 값을 그대로 사용한다.. 따라서 32바이트 크기의 청크에 4294967295 만큼 값을 쓸 수 있는, 힙 버퍼 오버플로우가 발생하게 된다.
+
+
+### Type Overflow
+변수가 저장할 수 있는 최댓값을 넘어서서 최솟값이 되는 버그
+
+### Type Underflow
+변수가 저장할 수 있는 최솟값보다 작아 최댓값이 되는 버그
+
+### Most Significant Bit(MSB)
+데이터의 최상위 비트, 부호를 표현하기 위해 사용됨.
+
+
+

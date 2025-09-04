@@ -32,6 +32,8 @@ kanban-plugin: board
 - [ ] [DH] hook
 - [ ] [DH] oneshot
 - [ ] [DH] out_of_bound
+- [ ] [DH] cmd_center
+- [ ] [DH] sint
 
 
 ## BrushUp01
