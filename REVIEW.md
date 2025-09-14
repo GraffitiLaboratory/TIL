@@ -37,6 +37,7 @@ kanban-plugin: board
 - [ ] [DH] uaf_overwrite
 - [ ] [DH] ssp_000
 - [ ] [DH_web] devtools-sources
+- [ ] [DH_web] cookie
 
 
 ## BrushUp01
