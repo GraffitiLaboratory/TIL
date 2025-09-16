@@ -38,6 +38,7 @@ kanban-plugin: board
 - [ ] [DH] ssp_000
 - [ ] [DH_web] devtools-sources
 - [ ] [DH_web] cookie
+- [ ] [DH_web] session-basic
 
 
 ## BrushUp01
